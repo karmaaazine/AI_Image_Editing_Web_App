@@ -23,9 +23,11 @@ function InpaintForm() {
 
     try {
       setLoading(true);
-      const res = await axios.post("http://localhost:5000/inpaint", formData, {
-        responseType: "blob", // Important to handle binary image
-      });
+      const res = await axios.post("http://localhost:5000/inpaint_direct_upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      responseType: "blob",
+    });
+
 
       const imageUrl = URL.createObjectURL(res.data);
       setResultUrl(imageUrl);

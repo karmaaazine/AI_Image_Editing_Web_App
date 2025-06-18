@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import InpaintFormWithCanvas from "./InpaintFormWithCanvas";
 import TextToImageForm from "./TextToImageForm";
+import EraseForm from "./EraseForm";
+
 
 function App() {
   const [selectedTool, setSelectedTool] = useState(null);
