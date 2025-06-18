@@ -32,6 +32,11 @@ function App() {
                 🖼️ Generate from Text
               </button>
             </li>
+            <li style={{ margin: "10px 0" }}>
+              <button onClick={() => setSelectedTool("erase")} style={buttonStyle}>
+                🧽 Erase an Object
+              </button>
+            </li>
           </ul>
         </div>
       )}
@@ -49,6 +54,13 @@ function App() {
         <>
           <h2>🖼️ Text-to-Image Generator</h2>
           <TextToImageForm />
+          <button onClick={() => setSelectedTool(null)} style={backButtonStyle}>⬅️ Back</button>
+        </>
+      )}
+
+      {selectedTool === "erase" && (
+        <>
+          <EraseForm />
           <button onClick={() => setSelectedTool(null)} style={backButtonStyle}>⬅️ Back</button>
         </>
       )}
