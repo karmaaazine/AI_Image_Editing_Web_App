@@ -55,7 +55,7 @@ function EraseForm() {
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Leave empty if no prompt"
+          placeholder="Optional (Leave empty if no prompt)"
           style={{ width: "100%" }}
         /><br /><br />
 
@@ -67,7 +67,7 @@ function EraseForm() {
           <h3>Result:</h3>
           <img src={resultUrl} alt="Erased Result" style={{ maxWidth: "100%" }} />
           <br />
-          <a href={resultUrl} download="erased.png">Download Result</a>
+          <a href={resultUrl} download="erased.png">Download</a>
         </div>
       )}
     </div>
