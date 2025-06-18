@@ -21,7 +21,7 @@ function EraseForm() {
     formData.append("prompt", prompt);
 
     try {
-      const res = await axios.post("http://localhost:5000/inpaint_direct_upload", formData, {
+      const res = await axios.post("http://localhost:5000/erase_direct_upload", formData, {
         responseType: "blob",
       });
       const url = URL.createObjectURL(res.data);

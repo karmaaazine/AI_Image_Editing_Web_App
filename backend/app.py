@@ -73,7 +73,7 @@ def generate_image():
     response = requests.post(
         "https://api.stability.ai/v2beta/stable-image/generate/core",
         headers=headers,
-        files=files  # ✅ send multipart/form-data here
+        files=files  
     )
 
     if response.status_code != 200:
@@ -82,8 +82,8 @@ def generate_image():
 
     return response.content, 200, {"Content-Type": "image/png"}
 
-@app.route("/inpaint_direct_upload", methods=["POST"])
-def inpaint_direct_upload():
+@app.route("/erase_direct_upload", methods=["POST"])
+def erase_direct_upload():
     prompt = request.form.get("prompt")
     image_file = request.files.get("image")
     mask_file = request.files.get("mask")
@@ -94,26 +94,26 @@ def inpaint_direct_upload():
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Accept": "image/*"
-        # No Content-Type here, requests sets it automatically
     }
 
     files = {
-        "prompt": (None, prompt or ""),
-        "image": (image_file.filename, image_file.stream, image_file.mimetype),
-        "mask": (mask_file.filename, mask_file.stream, mask_file.mimetype),
-        "output_format": (None, "png"),
+        "image": image_file,
+        "mask": mask_file,
+        "prompt": (None, prompt if prompt else ""),  # prompt can be empty
+        "output_format": (None, "png")
     }
 
     response = requests.post(
-        "https://api.stability.ai/v2beta/stable-image/edit/inpaint",
+        "https://api.stability.ai/v2beta/stable-image/edit/erase",
         headers=headers,
-        files=files,
+        files=files
     )
 
     if response.status_code == 200:
         return response.content, 200, {"Content-Type": "image/png"}
     else:
         return jsonify({"error": response.text}), response.status_code
+
 
 
 
