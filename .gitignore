@@ -12,5 +12,5 @@ venv/
 # VS Code settings (optional)
 .vscode/
 
-#Environment
+# Ignore environment variable files
 .env
