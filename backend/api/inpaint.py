@@ -19,9 +19,8 @@ HEADERS = {
 # def home():
 #     return "Flask backend is running!"
 
-@app.route("/inpaint", methods=["POST"])
+@app.route("/api/inpaint", methods=["POST"])
 def inpaint():
-    print("Flask backend is running!")
     prompt = request.form.get("prompt")
     image_file = request.files.get("image")
     mask_file = request.files.get("mask")
@@ -48,4 +47,8 @@ def inpaint():
         return response.content  # returns image binary
     else:
         return jsonify({"error": response.text}), response.status_code
+    
+@app.route("/api/test_inpaint", methods=["POST"])
+def test_post():
+    return jsonify({"message": "POST works!"})
     

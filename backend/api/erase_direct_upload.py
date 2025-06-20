@@ -18,7 +18,6 @@ HEADERS = {
 @app.route("/api/erase_direct_upload", methods=["POST"])
 
 def erase_direct_upload():
-    print("Flask backend is running!")
     prompt = request.form.get("prompt")
     image_file = request.files.get("image")
     mask_file = request.files.get("mask")
@@ -49,5 +48,8 @@ def erase_direct_upload():
     else:
         return jsonify({"error": response.text}), response.status_code
 
+@app.route("/api/test_erase", methods=["POST"])
+def test_post():
+    return jsonify({"message": "POST works!"})
 
 
