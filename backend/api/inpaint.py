@@ -48,7 +48,5 @@ def inpaint():
     else:
         return jsonify({"error": response.text}), response.status_code
     
-@app.route("/api/test_inpaint", methods=["POST"])
-def test_post():
-    return jsonify({"message": "POST works!"})
+
     

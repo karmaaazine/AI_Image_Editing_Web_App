@@ -48,6 +48,4 @@ def generate_image():
 
     return response.content, 200, {"Content-Type": "image/png"}
 
-@app.route("/api/test_generate", methods=["POST"])
-def test_post():
-    return jsonify({"message": "POST works!"})
+

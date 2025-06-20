@@ -48,8 +48,6 @@ def erase_direct_upload():
     else:
         return jsonify({"error": response.text}), response.status_code
 
-@app.route("/api/test_erase", methods=["POST"])
-def test_post():
-    return jsonify({"message": "POST works!"})
+
 
 
