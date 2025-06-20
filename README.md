@@ -47,8 +47,8 @@ Before you begin, ensure you have the following installed:
 1.  **Clone the Repository:**
 
     ```bash
-    git clone <your-repo-url>
-    cd <project-folder> # Replace with your project's root folder name
+    git clone https://github.com/karmaaazine/AI_Image_Editing_Web_App.git
+    cd AI_Image_Editing_Web_App
     ```
 
 2.  **Setup Environment Variables:**
@@ -84,14 +84,14 @@ Before you begin, ensure you have the following installed:
     flask run
     # Or for development with auto-reloading: FLASK_DEBUG=1 flask run
     ```
-    The backend server will typically run on `http://127.0.0.1:5000` by default.
+    The backend server will typically run on `http://localhost:5000` by default.
 
 4.  **Frontend Setup (React/Next.js):**
 
     Open a **new terminal window**, navigate into the `frontend` directory, install Node.js dependencies, and start the frontend development server.
 
     ```bash
-    cd ../frontend # Go back to project root, then into frontend
+    cd ./frontend 
     npm install
     npm start
     ```
@@ -101,19 +101,22 @@ Before you begin, ensure you have the following installed:
 
 Both the frontend and backend components of this application are designed for deployment on Vercel.
 
+backend deployment URL: https://ai-image-backend-project.vercel.app/
+frontend deployment URL: 
+
 ### Vercel Environment Variables
 
 Ensure your `STABILITY_API_KEY` is securely configured as an environment variable in your Vercel project settings for both the frontend and backend deployments.
 
 ## Example of the Inpaint Tool
 
-I gave the inpain tool an original photo:
+I gave the inpaint tool an original photo:
 ![original](https://github.com/user-attachments/assets/22cb69a0-1b37-44a5-8b98-0ad99bb690a8)
 
 and a masked image:
 ![mask](https://github.com/user-attachments/assets/932d420b-d653-40f9-9a72-3ff12fc8939e)
 
-with the prompt : "replace the outfit with a formal suit". The results:
+With the prompt: "Replace the outfit with a formal suit". The results:
 <img width="949" alt="image" src="https://github.com/user-attachments/assets/c9125d82-1aba-43ba-beae-50ca2a8294bc" />
 
 
