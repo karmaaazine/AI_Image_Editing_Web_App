@@ -115,6 +115,6 @@ def erase_direct_upload():
         return jsonify({"error": response.text}), response.status_code
 
 
-
-if __name__ == "__main__":
-    app.run(debug=True)
+# uncomment if testing locally
+# if __name__ == "__main__":
+#     app.run(debug=True)
