@@ -21,6 +21,7 @@ HEADERS = {
 
 @app.route("/inpaint", methods=["POST"])
 def inpaint():
+    print("Flask backend is running!")
     prompt = request.form.get("prompt")
     image_file = request.files.get("image")
     mask_file = request.files.get("mask")

@@ -15,8 +15,10 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-@app.route("/erase_direct_upload", methods=["POST"])
+@app.route("/api/erase_direct_upload", methods=["POST"])
+
 def erase_direct_upload():
+    print("Flask backend is running!")
     prompt = request.form.get("prompt")
     image_file = request.files.get("image")
     mask_file = request.files.get("mask")

@@ -17,6 +17,7 @@ HEADERS = {
 
 @app.route("/generate", methods=["POST"])
 def generate_image():
+    print("Flask backend is running!")
     prompt = request.form.get("prompt")
     aspect_ratio = request.form.get("aspect_ratio", "1:1")  # default is square
 
