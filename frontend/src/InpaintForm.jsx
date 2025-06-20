@@ -20,10 +20,10 @@ function InpaintForm() {
     formData.append("image", image);
     formData.append("mask", mask);
     formData.append("prompt", prompt);
-
+    // if testing locally use 'https://localhost:50000'
     try {
       setLoading(true);
-      const res = await axios.post("http://localhost:5000/inpaint_direct_upload", formData, {
+      const res = await axios.post("https://ai-image-backend-project.vercel.app/inpaint_direct_upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
       responseType: "blob",
     });

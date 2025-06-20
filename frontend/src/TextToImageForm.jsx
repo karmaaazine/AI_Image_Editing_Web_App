@@ -19,10 +19,10 @@ function TextToImageForm() {
     const formData = new FormData();
     formData.append("prompt", prompt);
     formData.append("aspect_ratio", aspectRatio); // ✅ Send to backend
-
+    // if testing locally use 'https://localhost:50000'
     try {
       const response = await axios.post(
-        "http://localhost:5000/generate",
+        "https://ai-image-backend-project.vercel.app/generate",
         formData,
         { responseType: "blob" }
       );

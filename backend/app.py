@@ -116,6 +116,5 @@ def erase_direct_upload():
 
 
 
-
 if __name__ == "__main__":
     app.run(debug=True)
