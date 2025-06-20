@@ -102,7 +102,7 @@ Before you begin, ensure you have the following installed:
 Both the frontend and backend components of this application are designed for deployment on Vercel.
 
 backend deployment URL: https://ai-image-backend-project.vercel.app/
-frontend deployment URL: 
+frontend deployment URL: https://ai-image-frontend-project.vercel.app/
 
 ### Vercel Environment Variables
 
