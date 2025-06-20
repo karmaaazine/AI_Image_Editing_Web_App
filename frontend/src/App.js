@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import InpaintFormWithCanvas from "./InpaintFormWithCanvas";
 import TextToImageForm from "./TextToImageForm";
-import EraseForm from "./EraseForm";
+import EraseForm from './EraseForm';
 
 
 function App() {
@@ -14,14 +14,14 @@ function App() {
       {/* Menu List */}
       {!selectedTool && (
         <div style={{ maxWidth: "400px", margin: "auto" }}>
-          <h2>🛠️ Choose a tool:</h2>
+          <h2>Choose a tool:</h2>
           <ul style={{ listStyle: "none", padding: 0 }}>
             <li style={{ margin: "10px 0" }}>
               <button
                 onClick={() => setSelectedTool("inpaint")}
                 style={buttonStyle}
               >
-                🎨 Inpaint an Image
+                Inpaint an Image
               </button>
             </li>
             <li style={{ margin: "10px 0" }}>
@@ -29,12 +29,15 @@ function App() {
                 onClick={() => setSelectedTool("text2img")}
                 style={buttonStyle}
               >
-                🖼️ Generate from Text
+                Generate from Text
               </button>
             </li>
             <li style={{ margin: "10px 0" }}>
-              <button onClick={() => setSelectedTool("erase")} style={buttonStyle}>
-                🧽 Erase an Object
+              <button
+                onClick={() => setSelectedTool("erase")}
+                style={buttonStyle}
+              >
+                Erase an Object
               </button>
             </li>
           </ul>
@@ -44,7 +47,6 @@ function App() {
       {/* Show selected tool */}
       {selectedTool === "inpaint" && (
         <>
-          <h2>🎨 Inpainting Tool</h2>
           <InpaintFormWithCanvas />
           <button onClick={() => setSelectedTool(null)} style={backButtonStyle}>⬅️ Back</button>
         </>
@@ -52,7 +54,6 @@ function App() {
 
       {selectedTool === "text2img" && (
         <>
-          <h2>🖼️ Text-to-Image Generator</h2>
           <TextToImageForm />
           <button onClick={() => setSelectedTool(null)} style={backButtonStyle}>⬅️ Back</button>
         </>

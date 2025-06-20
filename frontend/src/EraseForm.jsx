@@ -34,7 +34,7 @@ function EraseForm() {
 
   return (
     <div>
-      <h2>🧽 Upload Image and Mask</h2>
+      <h2>Upload Image and Mask</h2>
       <form onSubmit={handleSubmit}>
         <label>Upload Image:</label><br />
         <input
