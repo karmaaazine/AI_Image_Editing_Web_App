@@ -20,8 +20,8 @@ function InpaintFormWithCanvas() {
   }, [image]);
 
   const handleImageLoad = (e) => {
-    const { width, height } = e.target;
-    setDimensions({ width, height });
+    const { naturalWidth, naturalHeight } = e.target;
+    setDimensions({ width: naturalWidth, height: naturalHeight });
   };
 
   const handleSubmit = async (e) => {
