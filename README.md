@@ -47,7 +47,7 @@ Before you begin, ensure you have the following installed:
 1.  **Clone the Repository:**
 
     ```bash
-    git clone https://github.com/karmaaazine/AI_Image_Editing_Web_App.git
+    git clone https://github.com/karmaaazine/AI_Image_Editing_Web_App.git](https://github.com/RichdaleAIInternship/StabilityAI_test_Salma.git
     cd AI_Image_Editing_Web_App
     ```
 
