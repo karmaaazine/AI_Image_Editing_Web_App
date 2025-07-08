@@ -41,7 +41,7 @@ function InpaintFormWithCanvas() {
       formData.append("prompt", prompt);
 
       try {
-        const res = await axios.post("http://localhost:5000/inpaint", formData, {
+        const res = await axios.post("https://ai-image-backend-project.vercel.app/inpaint", formData, {
           responseType: "blob",
         });
         const imageUrl = URL.createObjectURL(res.data);
@@ -59,7 +59,15 @@ function InpaintFormWithCanvas() {
 
       <form onSubmit={handleSubmit}>
         <label>Upload Image:</label><br />
-        <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files[0])} /><br /><br />
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            if (e.target.files && e.target.files[0]) {
+              setImage(e.target.files[0]);
+            }
+          }}
+        /><br /><br />
 
         <label>Prompt:</label><br />
         <input
@@ -72,7 +80,12 @@ function InpaintFormWithCanvas() {
 
         {imageURL && (
           <>
-            <div style={{ position: "relative" }}>
+            <div style={{
+              position: "relative",
+              width: dimensions.width,
+              height: dimensions.height,
+              border: "1px solid #ccc"
+            }}>
               <img
                 ref={imageRef}
                 src={imageURL}

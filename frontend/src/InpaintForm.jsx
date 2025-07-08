@@ -23,7 +23,7 @@ function InpaintForm() {
     // if testing locally use 'https://localhost:50000'
     try {
       setLoading(true);
-      const res = await axios.post("https://ai-image-backend-project.vercel.app/inpaint_direct_upload", formData, {
+      const res = await axios.post("https://ai-image-backend-project.vercel.app/inpaint", formData, {
       headers: { "Content-Type": "multipart/form-data" },
       responseType: "blob",
     });

@@ -47,7 +47,7 @@ function App() {
       {/* Show selected tool */}
       {selectedTool === "inpaint" && (
         <>
-          <InpaintFormWith />
+          <InpaintFormWithCanvas />
           <button onClick={() => setSelectedTool(null)} style={backButtonStyle}>⬅️ Back</button>
         </>
       )}
