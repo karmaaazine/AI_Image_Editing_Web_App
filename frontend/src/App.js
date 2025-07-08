@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import InpaintFormWithCanvas from "./InpaintFormWithCanvas";
 import TextToImageForm from "./TextToImageForm";
 import EraseForm from './EraseForm';
+// import InpaintForm from "./InpaintForm";
+import InpaintFormWithCanvas from "./InpaintFormWithCanvas";
 
 
 function App() {
@@ -44,7 +45,6 @@ function App() {
         </div> 
       )}
 
-      {/* Show selected tool */}
       {selectedTool === "inpaint" && (
         <>
           <InpaintFormWithCanvas />
