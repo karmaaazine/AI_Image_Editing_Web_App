@@ -41,13 +41,13 @@ function App() {
               </button>
             </li>
           </ul>
-        </div>
+        </div> 
       )}
 
       {/* Show selected tool */}
       {selectedTool === "inpaint" && (
         <>
-          <InpaintForm />
+          <InpaintFormWith />
           <button onClick={() => setSelectedTool(null)} style={backButtonStyle}>⬅️ Back</button>
         </>
       )}
