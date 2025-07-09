@@ -1,8 +1,10 @@
 import React, { useRef, useState, useEffect } from "react";
 import { ReactSketchCanvas } from "react-sketch-canvas";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function InpaintFormWithCanvas() {
+  const navigate = useNavigate();
   const [image, setImage] = useState(null);
   const [imageURL, setImageURL] = useState(null);
   const [prompt, setPrompt] = useState("");
@@ -18,12 +20,34 @@ function InpaintFormWithCanvas() {
     if (image) {
       const url = URL.createObjectURL(image);
       setImageURL(url);
+      
+      // Create a temporary image to get dimensions
+      const img = new Image();
+      img.onload = () => handleImageLoad({ target: img });
+      img.src = url;
     }
   }, [image]);
 
   const handleImageLoad = (e) => {
     const { naturalWidth, naturalHeight } = e.target;
-    setDimensions({ width: naturalWidth, height: naturalHeight });
+    
+    // Optional: Scale down very large images while maintaining aspect ratio
+    const maxWidth = 1920;  // Maximum width we want to allow
+    const maxHeight = 1080; // Maximum height we want to allow
+    
+    let finalWidth = naturalWidth;
+    let finalHeight = naturalHeight;
+    
+    if (naturalWidth > maxWidth || naturalHeight > maxHeight) {
+      const ratio = Math.min(maxWidth / naturalWidth, maxHeight / naturalHeight);
+      finalWidth = Math.round(naturalWidth * ratio);
+      finalHeight = Math.round(naturalHeight * ratio);
+    }
+    
+    setDimensions({ 
+      width: finalWidth, 
+      height: finalHeight 
+    });
   };
 
   // Convert colored mask to black and white
@@ -109,7 +133,35 @@ function InpaintFormWithCanvas() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", padding: "20px" }}>
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      height: "100vh", 
+      padding: "20px",
+      backgroundColor: "rgba(255, 255, 255, 0.95)", // Semi-transparent white
+      backdropFilter: "blur(10px)"  // Blur any background that might show through
+    }}>
+      {/* Add Back Button */}
+      <button
+        onClick={() => navigate('/')}
+        style={{
+          backgroundColor: "#007bff",
+          color: "white",
+          border: "none",
+          padding: "8px 16px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          width: "fit-content",
+          marginBottom: "20px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          fontSize: "14px"
+        }}
+      >
+        ← Back
+      </button>
+
       <h2>AI Inpainting — Draw Your Mask</h2>
 
       <div style={{ display: "flex", flex: 1, gap: "20px" }}>
@@ -128,12 +180,42 @@ function InpaintFormWithCanvas() {
             <input
               type="file"
               accept="image/*"
+              id="file-upload"
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
                   setImage(e.target.files[0]);
                 }
               }}
+              style={{ display: 'none' }}  // Hide the default input
             />
+            <label
+              htmlFor="file-upload"
+              style={{
+                backgroundColor: "#007bff",  // Same blue as your other buttons
+                color: "white",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                display: "inline-block",
+                marginTop: "5px",
+                border: "none",
+                fontSize: "14px",
+                transition: "background-color 0.2s"
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = "#0056b3"}  // Darker on hover
+              onMouseOut={(e) => e.target.style.backgroundColor = "#007bff"}   // Back to normal
+            >
+              Upload Picture
+            </label>
+            {image && (
+              <div style={{ 
+                marginTop: "5px", 
+                fontSize: "14px", 
+                color: "#666" 
+              }}>
+                {image.name}
+              </div>
+            )}
           </div>
 
           <div>
@@ -182,20 +264,20 @@ function InpaintFormWithCanvas() {
         </div>
 
         {/* Main Canvas Area */}
-        <div style={{ flex: 1, position: "relative" }}>
+        <div style={{ flex: 1, position: "relative", overflow: "auto" }}>  {/* Added overflow: "auto" to handle large images */}
           {imageURL ? (
             <div style={{
               position: "relative",
-              width: "100%",
-              height: "100%",
+              width: `${dimensions.width}px`,  // Use actual image dimensions
+              height: `${dimensions.height}px`,  // Use actual image dimensions
               border: "1px solid #ccc",
               borderRadius: "8px",
-              overflow: "hidden"
+              margin: "auto"  // Center the canvas
             }}>
               <ReactSketchCanvas
                 ref={canvasRef}
-                width="100%"
-                height="100%"
+                width={dimensions.width}    // Use actual image width
+                height={dimensions.height}  // Use actual image height
                 strokeWidth={brushRadius}
                 strokeColor={selectedColor}
                 backgroundImage={imageURL}
@@ -208,7 +290,7 @@ function InpaintFormWithCanvas() {
           ) : (
             <div style={{
               width: "100%",
-              height: "100%",
+              height: "500px",  // Default height when no image
               border: "2px dashed #ccc",
               borderRadius: "8px",
               display: "flex",
