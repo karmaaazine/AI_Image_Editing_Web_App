@@ -4,6 +4,8 @@ from flask import Flask, request, jsonify, send_file
 from dotenv import load_dotenv
 from flask_cors import CORS
 import logging
+from PIL import Image
+import io
 
 app = Flask(__name__)
 # Update CORS configuration
@@ -42,37 +44,50 @@ def inpaint():
         if 'prompt' not in request.form:
             return {'error': 'No prompt provided'}, 400
 
-        # Get files and prompt from request
         image = request.files['image']
         mask = request.files['mask']
         prompt = request.form['prompt']
 
-        # Prepare the payload for Stability AI
-        files = {
-            'image': ('image.png', image.stream, 'image/png'),
-            'mask': ('mask.png', mask.stream, 'image/png')
-        }
-        
-        data = {
-            'prompt': prompt
-        }
+        # Validate and resize images if needed
+        def process_image(file, max_size=(1024, 1024)):
+            img = Image.open(file)
+            
+            # Convert to PNG if not already
+            if img.format != 'PNG':
+                img = img.convert('RGBA')
+            
+            # Resize if too large
+            if img.size[0] > max_size[0] or img.size[1] > max_size[1]:
+                img.thumbnail(max_size, Image.Resampling.LANCZOS)
+            
+            # Save to bytes
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format='PNG')
+            img_byte_arr.seek(0)
+            return img_byte_arr
 
-        logger.info(f"Making request to Stability AI with prompt: {prompt}")
+        # Process both images
+        image_data = process_image(image)
+        mask_data = process_image(mask)
 
-        # Make request to Stability AI
+        # Make request to Stability AI with increased timeout
         response = requests.post(
             'https://api.stability.ai/v2beta/stable-image/edit/inpaint',
-            files=files,
-            data=data,
             headers={
                 'Authorization': f'Bearer {STABILITY_API_KEY}',
-                'Accept': 'image/*'
+                'Accept': 'image/png'
             },
-            timeout=30
+            files={
+                'image': ('image.png', image_data, 'image/png'),
+                'mask': ('mask.png', mask_data, 'image/png')
+            },
+            data={
+                'prompt': prompt
+            },
+            timeout=60  # 60 seconds timeout
         )
 
         if response.status_code == 200:
-            logger.info("Successfully received response from Stability AI")
             return response.content, 200, {'Content-Type': 'image/png'}
         else:
             error_message = f"Stability AI Error: {response.status_code}"
@@ -80,11 +95,11 @@ def inpaint():
                 error_message += f" - {response.json()}"
             except:
                 pass
-            logger.error(error_message)
             return {'error': error_message}, response.status_code
 
+    except requests.exceptions.Timeout:
+        return {'error': 'Request timed out. Please try again.'}, 504
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
         return {'error': str(e)}, 500
 
 

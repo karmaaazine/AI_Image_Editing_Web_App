@@ -15,6 +15,7 @@ function InpaintFormWithCanvas() {
   const [isEraser, setIsEraser] = useState(false);
   const canvasRef = useRef();
   const imageRef = useRef();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (image) {
@@ -92,6 +93,12 @@ function InpaintFormWithCanvas() {
       return;
     }
 
+    // Validate image size before sending
+    if (image.size > 4 * 1024 * 1024) { // 4MB limit
+      alert("Image is too large. Please use an image under 4MB.");
+      return;
+    }
+
     try {
       // Get the colored mask
       const canvas = canvasRef.current;
@@ -100,57 +107,71 @@ function InpaintFormWithCanvas() {
       // Convert to black and white
       const bwMaskDataUrl = await convertToBlackAndWhite(coloredMaskDataUrl);
       
-      // Convert mask base64 to Blob
-      const maskBlob = await fetch(bwMaskDataUrl).then(r => r.blob());
+      // Convert mask to PNG blob with size validation
+      const maskBlob = await fetch(bwMaskDataUrl)
+        .then(r => r.blob())
+        .then(blob => {
+          if (blob.size > 4 * 1024 * 1024) {
+            throw new Error("Mask is too large. Please use a simpler mask.");
+          }
+          return blob;
+        });
 
-      // Convert image to correct format
-      const imageBlob = await new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-          canvas.toBlob((blob) => {
-            resolve(blob);
-          }, 'image/png');  // Changed to PNG as per API docs
-        };
-        img.src = imageURL;
-      });
-
-      // Create form data with actual files
+      // Create form data
       const formData = new FormData();
-      formData.append("image", new File([imageBlob], "image.png", { type: "image/png" }));
+      formData.append("image", image);
       formData.append("mask", new File([maskBlob], "mask.png", { type: "image/png" }));
       formData.append("prompt", prompt);
 
-      // Log the request data
-      console.log('Request data:', {
-        image: 'image.png',
-        mask: 'mask.png',
-        prompt: prompt
-      });
+      // Show loading state
+      setIsLoading(true); // Add this state if not already present
 
-      // Send to backend
-      const response = await axios.post(
-        "http://localhost:5000/inpaint", 
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Accept': 'image/*'
-          },
-          responseType: 'arraybuffer'
+      // Send to backend with retry logic
+      const maxRetries = 3;
+      let retryCount = 0;
+      let lastError = null;
+
+      while (retryCount < maxRetries) {
+        try {
+          const response = await axios.post(
+            "http://localhost:5000/inpaint",
+            formData,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+                'Accept': 'image/png'
+              },
+              responseType: 'arraybuffer',
+              timeout: 60000, // 60 seconds timeout
+              onUploadProgress: (progressEvent) => {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                console.log(`Upload Progress: ${percentCompleted}%`);
+                // Update progress indicator if you have one
+              }
+            }
+          );
+
+          if (response.status === 200) {
+            const imageUrl = URL.createObjectURL(
+              new Blob([response.data], { type: 'image/png' })
+            );
+            setResultUrl(imageUrl);
+            break; // Success, exit retry loop
+          }
+        } catch (error) {
+          lastError = error;
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`Attempt ${retryCount} failed, retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+          }
         }
-      );
-
-      if (response.status === 200) {
-        const imageUrl = URL.createObjectURL(
-          new Blob([response.data], { type: 'image/webp' })
-        );
-        setResultUrl(imageUrl);
       }
+
+      if (retryCount === maxRetries) {
+        throw lastError; // All retries failed
+      }
+
     } catch (err) {
       console.error('Error details:', err);
       if (err.response) {
@@ -164,11 +185,15 @@ function InpaintFormWithCanvas() {
             : err.response.data;
         }
         alert(`Server Error: ${errorMessage}`);
+      } else if (err.message.includes("too large")) {
+        alert(err.message);
       } else if (err.request) {
         alert("No response received from server. Please try again.");
       } else {
         alert(`Error: ${err.message}`);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -203,6 +228,30 @@ function InpaintFormWithCanvas() {
       </button>
 
       <h2>AI Inpainting — Draw Your Mask</h2>
+
+      {isLoading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            padding: '20px',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            textAlign: 'center'
+          }}>
+            Processing your image... Please wait.
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", flex: 1, gap: "20px" }}>
         {/* Left Sidebar - Tools */}
