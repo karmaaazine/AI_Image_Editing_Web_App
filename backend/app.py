@@ -47,27 +47,23 @@ def inpaint():
         mask = request.files['mask']
         prompt = request.form['prompt']
 
-        # Validate file types
-        allowed_extensions = {'png', 'jpg', 'jpeg', 'webp'}
-        if not allowed_file(image.filename, allowed_extensions):
-            return {'error': 'Invalid image file type'}, 400
-        if not allowed_file(mask.filename, allowed_extensions):
-            return {'error': 'Invalid mask file type'}, 400
-
-        # Prepare the payload
-        payload = {
+        # Prepare the payload for Stability AI
+        files = {
             'image': ('image.png', image.stream, 'image/png'),
-            'mask': ('mask.png', mask.stream, 'image/png'),
-            'prompt': prompt,
-            'output_format': 'webp'
+            'mask': ('mask.png', mask.stream, 'image/png')
+        }
+        
+        data = {
+            'prompt': prompt
         }
 
         logger.info(f"Making request to Stability AI with prompt: {prompt}")
 
-        # ✅ This part should be indented inside the try block
+        # Make request to Stability AI
         response = requests.post(
             'https://api.stability.ai/v2beta/stable-image/edit/inpaint',
-            files=payload,
+            files=files,
+            data=data,
             headers={
                 'Authorization': f'Bearer {STABILITY_API_KEY}',
                 'Accept': 'image/*'
@@ -77,7 +73,7 @@ def inpaint():
 
         if response.status_code == 200:
             logger.info("Successfully received response from Stability AI")
-            return response.content, 200, {'Content-Type': 'image/webp'}
+            return response.content, 200, {'Content-Type': 'image/png'}
         else:
             error_message = f"Stability AI Error: {response.status_code}"
             try:
@@ -87,12 +83,6 @@ def inpaint():
             logger.error(error_message)
             return {'error': error_message}, response.status_code
 
-    except requests.exceptions.Timeout:
-        logger.error("Request to Stability AI timed out")
-        return {'error': 'Request timed out'}, 504
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Request error: {str(e)}")
-        return {'error': 'Failed to communicate with Stability AI'}, 502
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         return {'error': str(e)}, 500

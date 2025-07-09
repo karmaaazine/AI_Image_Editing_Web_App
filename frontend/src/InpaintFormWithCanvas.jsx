@@ -100,11 +100,10 @@ function InpaintFormWithCanvas() {
       // Convert to black and white
       const bwMaskDataUrl = await convertToBlackAndWhite(coloredMaskDataUrl);
       
-      // Convert base64 to blob
-      const bwMaskResponse = await fetch(bwMaskDataUrl);
-      const maskBlob = await bwMaskResponse.blob();
+      // Convert mask base64 to Blob
+      const maskBlob = await fetch(bwMaskDataUrl).then(r => r.blob());
 
-      // Convert image to correct format if needed
+      // Convert image to correct format
       const imageBlob = await new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
@@ -115,25 +114,27 @@ function InpaintFormWithCanvas() {
           ctx.drawImage(img, 0, 0);
           canvas.toBlob((blob) => {
             resolve(blob);
-          }, 'image/jpeg', 0.95);
+          }, 'image/png');  // Changed to PNG as per API docs
         };
         img.src = imageURL;
       });
 
-      // Create form data
+      // Create form data with actual files
       const formData = new FormData();
-      formData.append("image", imageBlob, "image.jpg");  // Add proper filename and type
-      formData.append("mask", maskBlob, "mask.png");     // Add proper filename and type
+      formData.append("image", new File([imageBlob], "image.png", { type: "image/png" }));
+      formData.append("mask", new File([maskBlob], "mask.png", { type: "image/png" }));
       formData.append("prompt", prompt);
 
-      // Log the form data to verify contents
-      for (let pair of formData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
+      // Log the request data
+      console.log('Request data:', {
+        image: 'image.png',
+        mask: 'mask.png',
+        prompt: prompt
+      });
 
       // Send to backend
       const response = await axios.post(
-        "https://ai-image-backend-project.vercel.app/inpaint", 
+        "http://localhost:5000/inpaint", 
         formData,
         {
           headers: {
@@ -152,12 +153,11 @@ function InpaintFormWithCanvas() {
       }
     } catch (err) {
       console.error('Error details:', err);
-      // Better error handling
       if (err.response) {
-        // Convert ArrayBuffer to text if needed
         let errorMessage = '';
         if (err.response.data instanceof ArrayBuffer) {
           errorMessage = new TextDecoder().decode(err.response.data);
+          console.log('Decoded error message:', errorMessage);
         } else {
           errorMessage = typeof err.response.data === 'object' 
             ? JSON.stringify(err.response.data) 
