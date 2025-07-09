@@ -1,47 +1,114 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { ReactSketchCanvas } from "react-sketch-canvas";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 function EraseForm() {
   const navigate = useNavigate();
   const [image, setImage] = useState(null);
-  const [mask, setMask] = useState(null);
+  const [imageURL, setImageURL] = useState(null);
   const [prompt, setPrompt] = useState("");
   const [resultUrl, setResultUrl] = useState(null);
+  const [dimensions, setDimensions] = useState({ width: 512, height: 512 });
+  const [brushRadius, setBrushRadius] = useState(15);
+  const [selectedColor, setSelectedColor] = useState("#ffffff"); // White for erasing
+  const canvasRef = useRef();
+
+  // Handle image upload and set dimensions
+  const handleImageUpload = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImage(file);
+      
+      // Create URL and set dimensions
+      const url = URL.createObjectURL(file);
+      setImageURL(url);
+      
+      const img = new Image();
+      img.onload = () => {
+        setDimensions({
+          width: img.naturalWidth,
+          height: img.naturalHeight
+        });
+      };
+      img.src = url;
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!image || !mask) {
-      alert("Please upload both the image and the mask.");
+    if (!image) {
+      alert("Please upload an image first.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("image", image);
-    formData.append("mask", mask);
-    formData.append("prompt", prompt);
-    // if backend deployed use 'https://ai-image-backend-project.vercel.app/erase_direct_upload'
     try {
-      const res = await axios.post("https://ai-image-backend-project.vercel.app/erase_direct_upload", formData, {
-        responseType: "blob",
+      // Get the mask from canvas
+      const canvas = canvasRef.current;
+      const maskDataUrl = await canvas.exportImage("png");
+      
+      // Convert mask data URL to blob
+      const maskResponse = await fetch(maskDataUrl);
+      const maskBlob = await maskResponse.blob();
+
+      // Process image for better quality
+      const processedImageBlob = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            resolve(blob);
+          }, 'image/jpeg', 1.0); // Maximum quality
+        };
+        img.src = imageURL;
       });
+
+      const formData = new FormData();
+      formData.append("image", processedImageBlob, "image.jpg");
+      formData.append("mask", maskBlob, "mask.png");
+      // Use default prompt if none provided
+      formData.append("prompt", prompt || "Seamlessly remove the masked area and fill it naturally matching the surrounding environment");
+
+      const res = await axios.post(
+        "https://ai-image-backend-project.vercel.app/erase_direct_upload",
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'image/*'
+          },
+          responseType: "blob"
+        }
+      );
+
       const url = URL.createObjectURL(res.data);
       setResultUrl(url);
     } catch (err) {
       console.error(err);
-      alert("Error processing erase");
+      if (err.response) {
+        const errorMessage = err.response.data instanceof Blob 
+          ? await err.response.data.text()
+          : err.response.data;
+        alert(`Server Error: ${errorMessage}`);
+      } else {
+        alert("Error processing erase");
+      }
     }
   };
 
   return (
     <div style={{ 
       padding: "40px",
-      backgroundColor: "#fff",  // Solid white background
+      backgroundColor: "#fff",
       minHeight: "100vh",
-      width: "100%"  // Full width
+      width: "100%"
     }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>  {/* Content container */}
+      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
         <button
           onClick={() => navigate('/')}
           style={{
@@ -65,13 +132,17 @@ function EraseForm() {
           color: "#2c3e50"
         }}>Erase Object</h2>
 
-        <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-          <form onSubmit={handleSubmit} style={{ 
+        <div style={{ display: "flex", gap: "20px" }}>
+          {/* Left Sidebar - Tools */}
+          <div style={{ 
+            width: "200px", 
+            padding: "20px",
+            backgroundColor: "#f5f5f5",
+            borderRadius: "8px",
             display: "flex",
             flexDirection: "column",
-            gap: "20px"
+            gap: "15px"
           }}>
-            {/* Image Upload */}
             <div>
               <label style={{ 
                 display: "block", 
@@ -83,7 +154,7 @@ function EraseForm() {
                 type="file"
                 accept="image/*"
                 id="image-upload"
-                onChange={(e) => setImage(e.target.files[0])}
+                onChange={handleImageUpload}
                 style={{ display: 'none' }}
               />
               <label
@@ -91,134 +162,175 @@ function EraseForm() {
                 style={{
                   display: "block",
                   width: "100%",
-                  padding: "14px",
+                  padding: "10px",
                   backgroundColor: "#007bff",
                   color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontSize: "16px",
+                  borderRadius: "4px",
                   cursor: "pointer",
                   textAlign: "center",
-                  transition: "background-color 0.2s"
+                  fontSize: "14px"
                 }}
               >
                 Choose Image
               </label>
             </div>
 
-            {/* Mask Upload */}
             <div>
-              <label style={{ 
-                display: "block", 
-                marginBottom: "10px", 
-                color: "#2c3e50",
-                fontSize: "16px" 
-              }}>Upload Mask:</label>
+              <label>Brush Size: {brushRadius}px</label>
               <input
-                type="file"
-                accept="image/*"
-                id="mask-upload"
-                onChange={(e) => setMask(e.target.files[0])}
-                style={{ display: 'none' }}
-              />
-              <label
-                htmlFor="mask-upload"
-                style={{
-                  display: "block",
-                  width: "100%",
-                  padding: "14px",
-                  backgroundColor: "#007bff",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontSize: "16px",
-                  cursor: "pointer",
-                  textAlign: "center",
-                  transition: "background-color 0.2s"
-                }}
-              >
-                Choose Mask
-              </label>
-            </div>
-
-            {/* Optional Prompt */}
-            <div>
-              <label style={{ 
-                display: "block", 
-                marginBottom: "10px", 
-                color: "#2c3e50",
-                fontSize: "16px" 
-              }}>Optional Prompt:</label>
-              <input
-                type="text"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Optional (Leave empty if no prompt)"
-                style={{ 
-                  width: "100%",
-                  padding: "12px",
-                  borderRadius: "6px",
-                  border: "1px solid #ddd",
-                  fontSize: "16px"
-                }}
+                type="range"
+                min="5"
+                max="60"
+                value={brushRadius}
+                onChange={(e) => setBrushRadius(parseInt(e.target.value))}
+                style={{ width: "100%" }}
               />
             </div>
 
-            {/* Submit Button */}
             <button 
-              type="submit"
+              onClick={() => canvasRef.current?.clearCanvas()}
               style={{
-                width: "100%",
-                padding: "14px",
-                backgroundColor: "#007bff",
+                padding: "8px",
+                backgroundColor: "#6c757d",
                 color: "white",
                 border: "none",
-                borderRadius: "6px",
-                fontSize: "16px",
-                cursor: "pointer",
-                marginTop: "10px",
-                transition: "background-color 0.2s"
+                borderRadius: "4px",
+                cursor: "pointer"
               }}
             >
-              Erase Object
+              Clear Mask
             </button>
-          </form>
 
-          {/* Result Section */}
-          {resultUrl && (
-            <div style={{ marginTop: "40px", textAlign: "center" }}>
-              <h3 style={{ 
-                color: "#2c3e50", 
-                marginBottom: "20px",
-                fontSize: "24px"
-              }}>Result:</h3>
-              <img 
-                src={resultUrl} 
-                alt="Erased Result" 
-                style={{ 
-                  maxWidth: "100%",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-                }} 
-              />
-              <a 
-                href={resultUrl} 
-                download="erased.png"
-                style={{
-                  display: "inline-block",
-                  marginTop: "20px",
-                  backgroundColor: "#007bff",
-                  color: "white",
-                  padding: "10px 20px",
-                  borderRadius: "4px",
-                  textDecoration: "none"
-                }}
-              >
-                Download
-              </a>
-            </div>
-          )}
+            <button 
+              onClick={() => canvasRef.current?.undo()}
+              style={{
+                padding: "8px",
+                backgroundColor: "#6c757d",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer"
+              }}
+            >
+              Undo
+            </button>
+          </div>
+
+          {/* Main Canvas Area */}
+          <div style={{ flex: 1 }}>
+            {imageURL ? (
+              <div style={{
+                position: "relative",
+                width: `${dimensions.width}px`,
+                height: `${dimensions.height}px`,
+                border: "1px solid #ccc",
+                borderRadius: "8px",
+                overflow: "hidden"
+              }}>
+                <ReactSketchCanvas
+                  ref={canvasRef}
+                  width={dimensions.width}
+                  height={dimensions.height}
+                  strokeWidth={brushRadius}
+                  strokeColor={selectedColor}
+                  backgroundImage={imageURL}
+                  exportWithBackgroundImage={false}
+                  style={{
+                    border: "none"
+                  }}
+                />
+              </div>
+            ) : (
+              <div style={{
+                width: "100%",
+                height: "500px",
+                border: "2px dashed #ccc",
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#666"
+              }}>
+                Upload an image to start erasing
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Bottom Area - Prompt and Generate */}
+        <div style={{
+          marginTop: "20px",
+          padding: "20px",
+          backgroundColor: "#f5f5f5",
+          borderRadius: "8px"
+        }}>
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Optional: Describe how to fill the erased area (leave empty for automatic filling)"
+            style={{ 
+              width: "100%",
+              padding: "12px",
+              marginBottom: "10px",
+              borderRadius: "4px",
+              border: "1px solid #ddd"
+            }}
+          />
+          <button 
+            onClick={handleSubmit}
+            style={{
+              width: "100%",
+              padding: "12px",
+              backgroundColor: "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "16px"
+            }}
+          >
+            Erase Object
+          </button>
+        </div>
+
+        {/* Results */}
+        {resultUrl && (
+          <div style={{ 
+            marginTop: "40px",
+            textAlign: "center"
+          }}>
+            <h3 style={{ 
+              color: "#2c3e50",
+              marginBottom: "20px",
+              fontSize: "24px"
+            }}>Result:</h3>
+            <img 
+              src={resultUrl} 
+              alt="Result" 
+              style={{ 
+                maxWidth: "100%",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+              }} 
+            />
+            <a 
+              href={resultUrl} 
+              download="erased-image.png"
+              style={{
+                display: "inline-block",
+                marginTop: "20px",
+                backgroundColor: "#007bff",
+                color: "white",
+                padding: "10px 20px",
+                borderRadius: "4px",
+                textDecoration: "none"
+              }}
+            >
+              Download
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

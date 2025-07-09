@@ -26,14 +26,28 @@ function TextToImageForm() {
       const response = await axios.post(
         "https://ai-image-backend-project.vercel.app/generate",
         formData,
-        { responseType: "blob" }
+        { 
+          responseType: "blob",
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
       );
 
       const url = URL.createObjectURL(response.data);
       setImageUrl(url);
     } catch (err) {
-      console.error("Frontend error:", err.response?.data || err.message);
-      alert("❌ Error generating image. Check terminal for more info.");
+      console.error("Frontend error:", err);
+      if (err.response) {
+        const errorMessage = err.response.data instanceof Blob 
+          ? await err.response.data.text()
+          : err.response.data;
+        alert(`Server Error: ${errorMessage}`);
+      } else if (err.request) {
+        alert("No response received from server. Please try again.");
+      } else {
+        alert(`Error: ${err.message}`);
+      }
     } finally {
       setLoading(false);
     }

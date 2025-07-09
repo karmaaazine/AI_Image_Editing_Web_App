@@ -104,31 +104,71 @@ function InpaintFormWithCanvas() {
       const bwMaskResponse = await fetch(bwMaskDataUrl);
       const maskBlob = await bwMaskResponse.blob();
 
+      // Convert image to correct format if needed
+      const imageBlob = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            resolve(blob);
+          }, 'image/jpeg', 0.95);
+        };
+        img.src = imageURL;
+      });
+
       // Create form data
       const formData = new FormData();
-      formData.append("image", image);
-      formData.append("mask", maskBlob);
+      formData.append("image", imageBlob, "image.jpg");  // Add proper filename and type
+      formData.append("mask", maskBlob, "mask.png");     // Add proper filename and type
       formData.append("prompt", prompt);
 
+      // Log the form data to verify contents
+      for (let pair of formData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
+
       // Send to backend
-      const response = await axios.post("https://ai-image-backend-project.vercel.app/inpaint", formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        responseType: 'arraybuffer'
-      });
+      const response = await axios.post(
+        "https://ai-image-backend-project.vercel.app/inpaint", 
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'image/*'
+          },
+          responseType: 'arraybuffer'
+        }
+      );
 
       if (response.status === 200) {
         const imageUrl = URL.createObjectURL(
           new Blob([response.data], { type: 'image/webp' })
         );
         setResultUrl(imageUrl);
-      } else {
-        throw new Error(`Error: ${response.status}`);
       }
     } catch (err) {
       console.error('Error details:', err);
-      alert(`Error processing image: ${err.message}`);
+      // Better error handling
+      if (err.response) {
+        // Convert ArrayBuffer to text if needed
+        let errorMessage = '';
+        if (err.response.data instanceof ArrayBuffer) {
+          errorMessage = new TextDecoder().decode(err.response.data);
+        } else {
+          errorMessage = typeof err.response.data === 'object' 
+            ? JSON.stringify(err.response.data) 
+            : err.response.data;
+        }
+        alert(`Server Error: ${errorMessage}`);
+      } else if (err.request) {
+        alert("No response received from server. Please try again.");
+      } else {
+        alert(`Error: ${err.message}`);
+      }
     }
   };
 
