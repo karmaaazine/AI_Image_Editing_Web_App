@@ -11,7 +11,11 @@ app = Flask(__name__)
 # Update CORS configuration
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:3000"],  # Explicitly allow your frontend origin
+        "origins": [
+            "http://localhost:3000",  # Development
+            "https://*.vercel.app",   # Vercel deployments
+            # Add your production domain here
+        ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization", "Accept"],
         "expose_headers": ["Content-Type"]
@@ -28,7 +32,8 @@ STABILITY_API_KEY = os.getenv('STABILITY_API_KEY')
 
 # Validate API key on startup
 if not STABILITY_API_KEY:
-    raise ValueError("STABILITY_API_KEY not found in environment variables")
+    logger.warning("STABILITY_API_KEY not found in environment variables")
+    # Don't raise an error, just log it
 
 @app.route('/', methods=['GET'])
 def index():
