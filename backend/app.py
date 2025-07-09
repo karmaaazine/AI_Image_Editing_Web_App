@@ -57,13 +57,80 @@ def inpaint():
 
         logger.info(f"Making request to Stability AI with prompt: {prompt}")
 
-        # Make request to Stability AI
+        # ✅ This part should be indented inside the try block
         response = requests.post(
             'https://api.stability.ai/v2beta/stable-image/edit/inpaint',
             files=payload,
             headers={
                 'Authorization': f'Bearer {STABILITY_API_KEY}',
                 'Accept': 'image/*'
+            },
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            logger.info("Successfully received response from Stability AI")
+            return response.content, 200, {'Content-Type': 'image/webp'}
+        else:
+            error_message = f"Stability AI Error: {response.status_code}"
+            try:
+                error_message += f" - {response.json()}"
+            except:
+                pass
+            logger.error(error_message)
+            return {'error': error_message}, response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error("Request to Stability AI timed out")
+        return {'error': 'Request timed out'}, 504
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request error: {str(e)}")
+        return {'error': 'Failed to communicate with Stability AI'}, 502
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        return {'error': str(e)}, 500
+
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    try:
+        # Validate request contents
+        if 'prompt' not in request.form:
+            return {'error': 'No prompt provided'}, 400
+
+        # Get prompt and optional parameters
+        prompt = request.form['prompt']
+        aspect_ratio = request.form.get('aspect_ratio', '1:1')  # Default to square if not provided
+
+        # Map aspect ratios to dimensions
+        aspect_ratio_dimensions = {
+            '1:1': {'width': 1024, 'height': 1024},
+            '16:9': {'width': 1024, 'height': 576},
+            '9:16': {'width': 576, 'height': 1024},
+            '4:3': {'width': 1024, 'height': 768}
+        }
+
+        # Get dimensions based on aspect ratio
+        dimensions = aspect_ratio_dimensions.get(aspect_ratio, {'width': 1024, 'height': 1024})
+
+        logger.info(f"Making text-to-image request with prompt: {prompt}, aspect ratio: {aspect_ratio}")
+
+        # Make request to Stability AI
+        response = requests.post(
+            "https://api.stability.ai/v2beta/stable-image/generate/ultra",
+            headers={
+                "Authorization": f"Bearer {STABILITY_API_KEY}",
+                "Accept": "image/*"
+            },
+            files={"none": ''},
+            data={
+                "prompt": prompt,
+                "output_format": "webp",
+                "width": str(dimensions['width']),
+                "height": str(dimensions['height']),
+                "steps": "30",  # Optional: You can make these configurable
+                "cfg_scale": "7",  # Optional: You can make these configurable
+                "samples": "1"  # Number of images to generate
             },
             timeout=30  # Add timeout to prevent hanging
         )
