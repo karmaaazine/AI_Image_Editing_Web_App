@@ -1,12 +1,19 @@
 import os
 import requests
-from flask import Flask, request, send_file
+from flask import Flask, request, jsonify, send_file
 from dotenv import load_dotenv
 from flask_cors import CORS
 import logging
 
 app = Flask(__name__)
-CORS(app)
+# Update CORS configuration
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "Accept"]
+    }
+})
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -160,27 +167,23 @@ def generate():
 @app.route('/erase_direct_upload', methods=['POST'])
 def erase():
     try:
-        # Validate request contents
+        # Log incoming request
+        print("Received erase request")
+        
         if 'image' not in request.files:
-            return {'error': 'No image file provided'}, 400
+            print("No image file in request")
+            return jsonify({'error': 'No image file provided'}), 400
+            
         if 'mask' not in request.files:
-            return {'error': 'No mask file provided'}, 400
+            print("No mask file in request")
+            return jsonify({'error': 'No mask file provided'}), 400
 
-        # Get files and optional prompt
         image = request.files['image']
         mask = request.files['mask']
-        prompt = request.form.get('prompt', '')  # Optional prompt
-
-        # Validate file types
-        allowed_extensions = {'png', 'jpg', 'jpeg', 'webp'}
-        if not allowed_file(image.filename, allowed_extensions):
-            return {'error': 'Invalid image file type'}, 400
-        if not allowed_file(mask.filename, allowed_extensions):
-            return {'error': 'Invalid mask file type'}, 400
-
-        logger.info(f"Making erase request to Stability AI{' with prompt: ' + prompt if prompt else ''}")
-
-        # Make request to Stability AI
+        
+        # Log API call
+        print(f"Making request to Stability AI with key: {STABILITY_API_KEY[:5]}...")
+        
         response = requests.post(
             "https://api.stability.ai/v2beta/stable-image/edit/erase",
             headers={
@@ -188,37 +191,44 @@ def erase():
                 "Accept": "image/*"
             },
             files={
-                "image": ('image.png', image.stream, 'image/png'),
-                "mask": ('mask.png', mask.stream, 'image/png'),
+                "image": ("image.png", image.stream, "image/png"),
+                "mask": ("mask.png", mask.stream, "image/png"),
             },
             data={
-                "prompt": prompt if prompt else None,  # Only include if provided
-                "output_format": "webp",
-            },
-            timeout=30  # Add timeout to prevent hanging
+                "output_format": "png"
+            }
+        )
+        
+        # Log response
+        print(f"Stability AI response status: {response.status_code}")
+        if response.status_code != 200:
+            print(f"Error response: {response.text}")
+            return jsonify({'error': response.text}), response.status_code
+
+        return send_file(
+            response.content,
+            mimetype='image/png',
+            as_attachment=True,
+            download_name='result.png'
         )
 
-        if response.status_code == 200:
-            logger.info("Successfully received response from Stability AI")
-            return response.content, 200, {'Content-Type': 'image/webp'}
-        else:
-            error_message = f"Stability AI Error: {response.status_code}"
-            try:
-                error_message += f" - {response.json()}"
-            except:
-                pass
-            logger.error(error_message)
-            return {'error': error_message}, response.status_code
-
-    except requests.exceptions.Timeout:
-        logger.error("Request to Stability AI timed out")
-        return {'error': 'Request timed out'}, 504
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Request error: {str(e)}")
-        return {'error': 'Failed to communicate with Stability AI'}, 502
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        return {'error': str(e)}, 500
+        print(f"Error in erase endpoint: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/test-api-key', methods=['GET'])
+def test_api_key():
+    try:
+        if not STABILITY_API_KEY:
+            return jsonify({'error': 'API key not found'}), 500
+            
+        return jsonify({
+            'status': 'ok',
+            'message': 'API key is present',
+            'key_starts_with': STABILITY_API_KEY[:5]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and \
