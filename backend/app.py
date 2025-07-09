@@ -11,9 +11,10 @@ app = Flask(__name__)
 # Update CORS configuration
 CORS(app, resources={
     r"/*": {
-        "origins": "*",
+        "origins": ["http://localhost:3000"],  # Explicitly allow your frontend origin
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization", "Accept"]
+        "allow_headers": ["Content-Type", "Authorization", "Accept"],
+        "expose_headers": ["Content-Type"]
     }
 })
 
@@ -172,53 +173,70 @@ def generate():
 @app.route('/erase_direct_upload', methods=['POST'])
 def erase():
     try:
-        # Log incoming request
-        print("Received erase request")
+        logger.info("Received erase request")
         
         if 'image' not in request.files:
-            print("No image file in request")
+            logger.error("No image file in request")
             return jsonify({'error': 'No image file provided'}), 400
             
         if 'mask' not in request.files:
-            print("No mask file in request")
+            logger.error("No mask file in request")
             return jsonify({'error': 'No mask file provided'}), 400
 
         image = request.files['image']
         mask = request.files['mask']
         
-        # Log API call
-        print(f"Making request to Stability AI with key: {STABILITY_API_KEY[:5]}...")
+        # Validate and resize images if needed
+        def process_image(file, max_size=(1024, 1024)):
+            img = Image.open(file)
+            
+            # Convert to PNG if not already
+            if img.format != 'PNG':
+                img = img.convert('RGBA')
+            
+            # Resize if too large
+            if img.size[0] > max_size[0] or img.size[1] > max_size[1]:
+                img.thumbnail(max_size, Image.Resampling.LANCZOS)
+            
+            # Save to bytes
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format='PNG')
+            img_byte_arr.seek(0)
+            return img_byte_arr
+
+        # Process both images
+        image_data = process_image(image)
+        mask_data = process_image(mask)
+        
+        logger.info(f"Making request to Stability AI")
         
         response = requests.post(
             "https://api.stability.ai/v2beta/stable-image/edit/erase",
             headers={
                 "Authorization": f"Bearer {STABILITY_API_KEY}",
-                "Accept": "image/*"
+                "Accept": "image/png"
             },
             files={
-                "image": ("image.png", image.stream, "image/png"),
-                "mask": ("mask.png", mask.stream, "image/png"),
+                "image": ("image.png", image_data, "image/png"),
+                "mask": ("mask.png", mask_data, "image/png")
             },
-            data={
-                "output_format": "png"
-            }
+            timeout=60  # 60 seconds timeout
         )
         
-        # Log response
-        print(f"Stability AI response status: {response.status_code}")
+        logger.info(f"Stability AI response status: {response.status_code}")
+        
         if response.status_code != 200:
-            print(f"Error response: {response.text}")
-            return jsonify({'error': response.text}), response.status_code
+            error_message = response.text
+            logger.error(f"Error response: {error_message}")
+            return jsonify({'error': error_message}), response.status_code
 
-        return send_file(
-            response.content,
-            mimetype='image/png',
-            as_attachment=True,
-            download_name='result.png'
-        )
+        return response.content, 200, {'Content-Type': 'image/png'}
 
+    except requests.exceptions.Timeout:
+        logger.error("Request to Stability AI timed out")
+        return jsonify({'error': 'Request timed out'}), 504
     except Exception as e:
-        print(f"Error in erase endpoint: {str(e)}")
+        logger.error(f"Error in erase endpoint: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/test-api-key', methods=['GET'])

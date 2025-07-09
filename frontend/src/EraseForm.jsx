@@ -75,7 +75,7 @@ function EraseForm() {
       formData.append("prompt", prompt || "Seamlessly remove the masked area and fill it naturally matching the surrounding environment");
 
       const res = await axios.post(
-        "https://ai-image-backend-project.vercel.app/erase_direct_upload",
+        "http://localhost:5000/erase_direct_upload",
         formData,
         {
           headers: {
