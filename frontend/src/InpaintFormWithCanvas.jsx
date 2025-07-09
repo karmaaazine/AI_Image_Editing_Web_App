@@ -111,7 +111,7 @@ function InpaintFormWithCanvas() {
       formData.append("prompt", prompt);
 
       // Send to backend
-      const response = await axios.post("http://localhost:5000/inpaint", formData, {
+      const response = await axios.post("https://ai-image-backend-project.vercel.app/inpaint", formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

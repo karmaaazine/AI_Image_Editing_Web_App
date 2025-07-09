@@ -24,7 +24,7 @@ function TextToImageForm() {
     // if testing locally use 'https://localhost:50000'
     try {
       const response = await axios.post(
-        "http://localhost:5000/generate",
+        "https://ai-image-backend-project.vercel.app/generate",
         formData,
         { responseType: "blob" }
       );

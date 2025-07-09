@@ -23,7 +23,7 @@ function EraseForm() {
     formData.append("prompt", prompt);
     // if backend deployed use 'https://ai-image-backend-project.vercel.app/erase_direct_upload'
     try {
-      const res = await axios.post("http://localhost:5000/erase_direct_upload", formData, {
+      const res = await axios.post("https://ai-image-backend-project.vercel.app/erase_direct_upload", formData, {
         responseType: "blob",
       });
       const url = URL.createObjectURL(res.data);
